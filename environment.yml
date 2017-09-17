@@ -1,0 +1,7 @@
+name: indoor-recognition
+channels:
+- defaults
+dependencies:
+- python=3.5.2=0
+- tensorflow-gpu
+- pandas

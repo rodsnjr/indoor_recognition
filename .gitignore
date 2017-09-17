@@ -1,0 +1,9 @@
+*.npy
+*.tfrecord
+*.pyc
+*.jpg
+*.zip
+*.tar.gz
+*.ckpt
+.vscode/
+.ipynb_checkpoints/
