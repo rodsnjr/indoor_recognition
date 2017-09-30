@@ -1,7 +1,7 @@
 """
     Provides a interface to access, download, process, convert, and load the GVC Indoor Dataset
 
-    https://github.com/rodsnjr/
+    https://github.com/rodsnjr/gvc_dataset/
     
     Using Slim Dataset Provider
     https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/slim/python/slim/data/dataset_data_provider.py
@@ -19,9 +19,11 @@ import os
 import sys
 
 import tensorflow as tf
+from scipy.ndimage import imread
 
 from . import DIR, tfr_present
-from . import file_helpers
+from ..helpers import file_helpers
+from ..helpers import convert_helpers
 
 slim = tf.contrib.slim
 
@@ -34,53 +36,50 @@ class TFRecord_Converter:
 
 class GVC_Dataset:
     _FILE_PATTERN = 'gvc_%s.tfrecord'
-    
-    _SPLITS_TO_SIZES = {'train': 60000, 'test': 10000}
-
+    _SPLITS_TO_SIZES = {'train': 5000, 'test': 3000}
     _NUM_CLASSES = 3
-
-    _ITEMS_TO_DESCRIPTIONS = {
-        'image': 'A [28 x 28 x 1] grayscale image.',
-        'label': 'A single integer between 0 and 9',
-    }
-
+    _NUM_EXAMPLES = 8000
     _DESCRIPTION = "GVC Indoor Dataset"
-
-    _DATASET_URL = 'https://github.com/rodsnjr/gvc_dataset.git'
-
+    _DATASET_URL = 'https://github.com/rodsnjr/gvc_dataset/archive/master.zip'
     _DATASET_DIR = os.path.join(DIR, 'gvc_dataset')
 
-    def __init__(self):
-        pass
+    def __init__(self, dataset_dir=_DATASET_DIR):
+        self.dataset_dir = dataset_dir
+        self.images = []
+        self.labels = []
+        self.num_examples = self._NUM_EXAMPLES
     
     def check_available(self):
         """ 
             Check if the dataset is in its directory
             and download/create it if not
         """
-        if not os.path.exists(self._DATASET_DIR):
-            os.makedirs(self._DATASET_DIR)
+        if not os.path.exists(self.dataset_dir):
+            os.makedirs(self.dataset_dir)
+        
+        files_dir = len([name for name in os.listdir(self.dataset_dir) if os.path.isfile(name)])
+        if files_dir < 3:
             self.download()
     
     def download(self):
         file_helpers.downloader(url=self._DATASET_URL, 
-            directory=self._DATASET_DIR,
+            directory=self.dataset_dir,
             filename='gvc_dataset.zip',
-            desc=self._DESCRIPTION
+            description=self._DESCRIPTION
         )
     
     def extract(self):
-        filename = os.path.join(self._DATASET_DIR, 'gvc_dataset.zip')
+        filename = os.path.join(self.dataset_dir, 'gvc_dataset.zip')
         print(filename)
         file_helpers.extract_zip(filename, self._DATASET_DIR)
     
-    def process(self, size=(224, 224, 3)):
-        """
-            Proccess the dataset images to the defined size
-        """
-    
+    def load_images(self):
+        for filename, label in file_helpers.find_images_directory(self.dataset_dir)):
+            self.images.append(imread(filename))
+            self.labels.append(label)
+        
     def convert_to_tf(self):
-        pass
+        convert_helpers.convert_to(self, self.dataset_dir, self._FILE_PATTERN)
     
     def get_slim(self):
         pass

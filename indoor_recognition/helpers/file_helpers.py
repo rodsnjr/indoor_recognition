@@ -1,7 +1,7 @@
 from urllib.request import urlretrieve
 from os.path import isfile, isdir
 from tqdm import tqdm, trange
-
+import os
 import zipfile
 
 class DLProgress(tqdm):
@@ -12,13 +12,14 @@ class DLProgress(tqdm):
         self.update((block_num - self.last_block) * block_size)
         self.last_block = block_num
 
-def downloader(url, directory='/', filename='dataset.zip', desc='Dataset'):
+def downloader(url, directory, filename='dataset.zip', description='Dataset'):
     """
         Downloader function with progress bar
         for Jupyter Notebooks
     """
-    with DLProgress(unit='B', unit_scale=True, miniters=1, desc=desc) as pbar:
-        urlretrieve(url, directory, filename, pbar.hook)
+    download_description = str(description)
+    with DLProgress(unit='B', unit_scale=True, miniters=1, desc=download_description) as pbar:
+        urlretrieve(url, os.path.join(directory, filename), pbar.hook)
 
 def extract_zip(filename, directory):
     
@@ -32,3 +33,7 @@ def extract_zip(filename, directory):
             percentage = extracted_size * 100/uncompress_size
             zf.extract(item, directory)
             pbar.update(percentage)
+
+def find_images_directory(directory):
+    " Return Generator with each image in directory, and a label (image contained in subdirectory) "
+    return (0,0)
