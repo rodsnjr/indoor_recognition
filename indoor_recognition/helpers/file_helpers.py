@@ -31,9 +31,11 @@ def extract_zip(filename, directory):
         for item in zf.infolist():
             extracted_size += item.file_size
             percentage = extracted_size * 100/uncompress_size
-            zf.extract(item, directory)
+            zf.extract(item)
             pbar.update(percentage)
 
-def find_images_directory(directory):
+def find_images_directory(directory, label):
     " Return Generator with each image in directory, and a label (image contained in subdirectory) "
-    return (0,0)
+    for _file in os.listdir(directory):
+        if _file.endswith(".jpg"):
+            yield os.path.join(directory, _file), label

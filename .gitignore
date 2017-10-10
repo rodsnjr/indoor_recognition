@@ -8,3 +8,5 @@
 .vscode/
 .ipynb_checkpoints/
 datasets/
+
+udacity_transfer_learning/checkpoints/

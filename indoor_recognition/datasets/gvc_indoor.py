@@ -19,7 +19,12 @@ import os
 import sys
 
 import tensorflow as tf
+import numpy as np
 from scipy.ndimage import imread
+
+from PIL import Image
+
+from sklearn.preprocessing import LabelBinarizer
 
 from . import DIR, tfr_present
 from ..helpers import file_helpers
@@ -43,6 +48,12 @@ class GVC_Dataset:
     _DATASET_URL = 'https://github.com/rodsnjr/gvc_dataset/archive/master.zip'
     _DATASET_DIR = os.path.join(DIR, 'gvc_dataset')
 
+    _NP_IMAGES = "images"
+    _NP_LABELS = "labels"
+
+    _OUTPUT_WIDTH = 224
+    _OUTPUT_HEIGHT = 224
+
     def __init__(self, dataset_dir=_DATASET_DIR):
         self.dataset_dir = dataset_dir
         self.images = []
@@ -62,6 +73,9 @@ class GVC_Dataset:
             self.download()
     
     def download(self):
+        if os.path.exists(os.path.join(self.dataset_dir, 'gvc_dataset.zip')):
+            print("File already exists")
+            return
         file_helpers.downloader(url=self._DATASET_URL, 
             directory=self.dataset_dir,
             filename='gvc_dataset.zip',
@@ -70,13 +84,60 @@ class GVC_Dataset:
     
     def extract(self):
         filename = os.path.join(self.dataset_dir, 'gvc_dataset.zip')
-        print(filename)
-        file_helpers.extract_zip(filename, self._DATASET_DIR)
+        if os.path.exists(filename):
+            print("Extracting ", filename)
+            file_helpers.extract_zip(filename, self.dataset_dir)
     
     def load_images(self):
-        for filename, label in file_helpers.find_images_directory(self.dataset_dir)):
-            self.images.append(imread(filename))
+        doors = os.path.join(self.dataset_dir, 'Doors')
+        indoors = os.path.join(self.dataset_dir, 'Indoor Environment')
+        print("Loading Door Images")
+
+        for filename, label in file_helpers.find_images_directory(doors, "door"):
+            self.images.append(filename)
             self.labels.append(label)
+        
+        print("Loading Indoor Images")
+        for filename, label in file_helpers.find_images_directory(doors, "indoor"):
+            self.images.append(filename)
+            self.labels.append(label)
+    
+    def load_batch(self, batch, preprocessing_fn=None):
+        if preprocessing_fn:
+            return [preprocessing_fn(imread(item), self._OUTPUT_WIDTH, 
+                                            self._OUTPUT_HEIGHT) for item in batch]
+        
+        batch_ = []
+        for item in batch:
+            if type(item) is str:
+                img = Image.open(item)
+                img = img.convert("RGB")
+                img = img.resize((self._OUTPUT_WIDTH, self._OUTPUT_HEIGHT), Image.ANTIALIAS)
+                batch_.append(np.array(img))
+        return batch_
+
+    
+    def convert_to_np(self, batch_size=200, save_dir=None,
+        preprocessing_fn=None):
+        """ 
+            Convert all images, and labels to a numpy array and save it 
+        """
+        if not save_dir:
+            save_dir = self.dataset_dir
+        
+        lb = LabelBinarizer()
+        total_images = len(self.images)
+        total_batches = total_images // batch_size
+        for i in range(total_batches):
+            batch = np.array(self.load_batch(self.images[i * batch_size : (i+1) * batch_size]))
+            labels_vecs = lb.fit_transform(self.labels[i * batch_size : (i+1) * batch_size])
+            np.save(os.path.join(save_dir, self._NP_IMAGES + str(i)), batch)
+            np.save(os.path.join(save_dir, self._NP_LABELS + str(i)), labels_vecs)
+    
+    def load_np_batch(self, load_dir, batch_num):
+        images = np.load(os.path.join(load_dir, self._NP_IMAGES + str(batch_num) + ".npy"))
+        labels = np.load(os.path.join(load_dir, self._NP_LABELS + str(batch_num) + ".npy"))
+        return images, labels
         
     def convert_to_tf(self):
         convert_helpers.convert_to(self, self.dataset_dir, self._FILE_PATTERN)
