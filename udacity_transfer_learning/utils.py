@@ -116,8 +116,7 @@ def get_batches(x, y, n_batches=10):
             X, Y = x[ii:], y[ii:]
         yield X, Y
 
-def generate_features(classes, data_dir, vgg):
-    batch_size = 50
+def generate_features(classes, data_dir, vgg, batch_size=10):
     codes_list = []
     labels = []
     batch = []
