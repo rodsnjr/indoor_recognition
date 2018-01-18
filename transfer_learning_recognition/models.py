@@ -61,6 +61,11 @@ class Models(Enum):
         print("Model Build ...")
         return self.layers
 
+    def extract_features(self, file):
+        img = utils.load_image(file)
+        img_pred = img.reshape((1, 224, 224, 3))
+        return self.model.predict(img_pred)
+
     def get_features(self, directory, batch_size=10):
         if type(directory) != utils.Directory:
             raise Exception("Must be of type Directory enum (in utils package)")
